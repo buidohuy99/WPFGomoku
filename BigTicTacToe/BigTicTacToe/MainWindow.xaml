@@ -1,0 +1,99 @@
+﻿<Window x:Class="BigTicTacToe.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BigTicTacToe"
+        mc:Ignorable="d"
+        Icon="Images/icon.png"
+        Loaded="Window_Loaded"
+        Title="Tic Tac Toe" Height="450" Width="800" ResizeMode="NoResize">
+    <Window.Resources>
+        
+        <Style x:Key="TicTacToeCell" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#faf48e" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.75"/>
+                    <Setter Property="Background" Value="White"/>
+                    <Setter Property="Cursor" Value="None"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#d6a833"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DefaultButton" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="#edbf47"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="20" Padding="0,8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.75"/>
+                    <Setter Property="Background" Value="DimGray"/>
+                    <Setter Property="Cursor" Value="None"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                                <GradientStop Color="#d6a833" Offset="0" />
+                                <GradientStop Color="#cc9508" Offset="1" />
+                            </LinearGradientBrush>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+    </Window.Resources>
+    <Grid Background="#3d2a01">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="6*"/>
+            <ColumnDefinition Width="4*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" BorderBrush="#faf48e" BorderThickness="0,0,1,0" >
+            <Canvas Name="GameBoard" >
+                
+            </Canvas>
+        </Border>
+        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+            <Border Name="GameStatus" BorderBrush="#faf48e" BorderThickness="1" Width="200" Height="200" Margin="30"
+                    CornerRadius="10" Background="#543a02">
+                
+            </Border>
+            <Button Name="StartButton" Content="Start" Width="150" Click="StartGame_Clicked"
+                    Style="{StaticResource DefaultButton}" Margin="0,0,0,15"/>
+            <Button Name="SaveButton" Content="Save" Width="150" Click="SaveGame_Clicked"
+                    Style="{StaticResource DefaultButton}" Margin="0,0,0,15"/>
+            <Button Name="LoadButton" Content="Load" Width="150" Click="LoadGame_Clicked"
+                    Style="{StaticResource DefaultButton}"/>
+
+        </StackPanel>
+    </Grid>
+</Window>
