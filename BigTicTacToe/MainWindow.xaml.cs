@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 
 namespace BigTicTacToe
 {
@@ -31,9 +32,10 @@ namespace BigTicTacToe
         //UI related
         int numOfRows, numOfCols;
         double offsetX, offsetY;
+        int prevPos = -1;
         TextBlock currentTurn;
         Image gameHome;
-        Button[,] TTTCells;
+        Border choiceBox;
 
         public MainWindow()
         {
@@ -48,7 +50,6 @@ namespace BigTicTacToe
             offsetY = (GameBoard.ActualHeight - numOfRows * CellHeight) / 2;
 
             TTTBoard = new int[numOfRows, numOfCols];
-            TTTCells = new Button[numOfRows, numOfCols]; 
             
             //Populate Canvas
             for(int i = 0; i < numOfRows; i++)
@@ -57,25 +58,32 @@ namespace BigTicTacToe
                 {
                     TTTBoard[i, j] = 0;
 
-                    Button temp = new Button();
-                    temp.Width = CellWidth;
-                    temp.Height = CellHeight;
-                    temp.Click += Cell_Clicked;
-                    temp.Tag = new Tuple<int, int>(i, j);
-                    temp.Style = FindResource("TicTacToeCell") as Style;
-                    //Setting border of a cell
-                    int[] thickness = {1, 1};
-                    if (i == 0) thickness[1] = 0;
-                    if (j == 0) thickness[0] = 0;
-                    temp.BorderThickness = new Thickness(thickness[0], thickness[1], 0, 0);
-                    temp.IsEnabled = false;
+                    if (i != 0 && j != 0) continue;
+                    if (i == numOfRows - 1 || j == numOfCols - 1) continue;
+                    
+                    if (i == 0)
+                    {
+                        Line line = new Line();
+                        line.Stroke = new SolidColorBrush(Color.FromRgb(250, 244, 142));
+                        line.StrokeThickness = 1;
+                        GameBoard.Children.Add(line);
+                        line.X1 = offsetX + j * CellWidth + CellWidth;
+                        line.X2 = line.X1;
+                        line.Y1 = offsetY;
+                        line.Y2 = line.Y1 + numOfRows * CellHeight;
+                    }
 
-                    TTTCells[i, j] = temp;
-
-                    //Add to canvas
-                    Canvas.SetLeft(temp, offsetX + j * CellWidth);
-                    Canvas.SetTop(temp, offsetY + i * CellHeight);
-                    GameBoard.Children.Add(temp);
+                    if(j == 0)
+                    {
+                        Line line = new Line();
+                        line.Stroke = new SolidColorBrush(Color.FromRgb(250, 244, 142));
+                        line.StrokeThickness = 1;
+                        GameBoard.Children.Add(line);
+                        line.X1 = offsetX;
+                        line.X2 = line.X1 + numOfCols * CellWidth;
+                        line.Y1 = offsetY + i * CellHeight + CellHeight;
+                        line.Y2 = line.Y1;
+                    }
 
                 }
             }
@@ -98,23 +106,49 @@ namespace BigTicTacToe
             currentTurn.FontSize = 130;
             currentTurn.Padding = new Thickness(0, 0, 0, 15);
 
+            //Create choice box
+            choiceBox = createChoiceBlock();
+
             //Disable Saving
             SaveButton.IsEnabled = false;
+
+            //Disable Game Board
+            GameBoard.IsEnabled = false;
+
+        }
+
+        private Border createChoiceBlock()
+        {
+            Border returnBlock = new Border();
+            returnBlock.Background = new SolidColorBrush(Color.FromRgb(214, 168, 51));
+            returnBlock.Height = CellHeight;
+            returnBlock.Width = CellWidth;
+            return returnBlock;
+        }
+
+        private void setChoiceBlockText(Border choiceBlock, TextBlock text)
+        {
+            if (choiceBlock == null || text == null) return;
+            text.VerticalAlignment = VerticalAlignment.Center;
+            text.HorizontalAlignment = HorizontalAlignment.Center;
+            choiceBlock.Child = text;
         }
 
         private void ResetBoard(bool makeDisable, bool clearContent)
         {
-            foreach (var x in GameBoard.Children)
+            if (clearContent)
             {
-                Button child = x as Button;
-                var buttonTag = child.Tag as Tuple<int, int>;
-                int cellRow = buttonTag.Item1;
-                int cellCol = buttonTag.Item2;
-                if (clearContent) child.Content = null;
-                child.IsEnabled = true;
-                if (makeDisable) child.IsEnabled = false;
-                TTTBoard[cellRow, cellCol] = 0;
+                int count = GameBoard.Children.Count;
+                int numOfLines = numOfRows + numOfCols - 2;
+                for (int i = count - 1; i >= numOfLines; i--)
+                {
+                    var item = (GameBoard.Children[i] as Border).Tag as Tuple<int,int>;
+                    TTTBoard[item.Item1, item.Item2] = 0;
+                    GameBoard.Children.RemoveAt(i);
+                }
             }
+            GameBoard.IsEnabled = true;
+            if (makeDisable) GameBoard.IsEnabled = false;
         }
 
         private void StartGame_Clicked(object sender, RoutedEventArgs e)
@@ -173,7 +207,6 @@ namespace BigTicTacToe
                 {
                     var tokens = reader.ReadLine().Split(
                         new string[] { " " }, StringSplitOptions.None);
-                    // Model
 
                     for (int j = 0; j < numOfCols; j++)
                     {
@@ -182,19 +215,27 @@ namespace BigTicTacToe
                         if (TTTBoard[i, j] == 0) continue;
 
                         TextBlock newText = new TextBlock();
-                        if (TTTBoard[i,j] == 1)
+                        if (TTTBoard[i, j] == 1)
                         {
                             newText.Text = "X";
                             newText.Foreground = new SolidColorBrush(Colors.DarkSlateBlue);
                         }
-                        else if (TTTBoard[i,j] == 2)
+                        else if (TTTBoard[i, j] == 2)
                         {
                             newText.Text = "O";
                             newText.Foreground = new SolidColorBrush(Colors.DarkRed);
                         }
                         newText.FontWeight = FontWeights.Bold;
-                        TTTCells[i, j].Content = newText;
-                        TTTCells[i, j].IsEnabled = false;
+
+                        setChoiceBlockText(choiceBox, newText);
+                        choiceBox.Opacity = 0.75;
+
+                        choiceBox.Tag = new Tuple<int, int>(i, j);
+                        GameBoard.Children.Add(choiceBox);
+                        Canvas.SetLeft(choiceBox, offsetX + CellWidth * j);
+                        Canvas.SetTop(choiceBox, offsetY + CellHeight * i);
+
+                        choiceBox = createChoiceBlock();
                     }
                 }
 
@@ -207,34 +248,77 @@ namespace BigTicTacToe
             }
         }
 
-        private void Cell_Clicked(object sender, RoutedEventArgs e)
+        private void GameBoard_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (!gameStarted) return;
-            var buttonTag = (sender as Button).Tag as Tuple<int,int>;
-            int cellRow = buttonTag.Item1;
-            int cellCol = buttonTag.Item2;
-            if(TTTBoard[cellRow, cellCol] == 0)
+
+            //Get position relative to gameboard
+            var pos = e.GetPosition(GameBoard);
+
+            if (prevPos != -1)
             {
+                var item = (GameBoard.Children[prevPos] as Border).Tag as Tuple<int, int>;
+                int prevCellRow = item.Item1;
+                int prevCellCol = item.Item2;
+                if (pos.X >= offsetX + prevCellCol * CellWidth && pos.X < offsetX + (prevCellCol + 1) * CellWidth
+                    && pos.Y >= offsetY + prevCellRow * CellHeight && pos.Y < offsetY + (prevCellRow + 1) * CellHeight)
+                    return;
+                GameBoard.Children.RemoveAt(prevPos);
+                prevPos = -1;
+            }
+
+            if (pos.X < offsetX || pos.X >= GameBoard.ActualWidth - offsetX) return;
+            if (pos.Y < offsetY || pos.Y >= GameBoard.ActualHeight - offsetY) return;
+
+            int col = (int)((pos.X - offsetX) / CellWidth);
+            int row = (int)((pos.Y - offsetY) / CellHeight);
+            choiceBox.Tag = new Tuple<int, int>(row, col);
+
+            if (TTTBoard[row, col] != 0) return;
+            prevPos = GameBoard.Children.Count;
+            GameBoard.Children.Add(choiceBox);
+            Canvas.SetLeft(choiceBox, offsetX + CellWidth * col);
+            Canvas.SetTop(choiceBox, offsetY + CellHeight * row);
+        }
+
+        private void GameBoard_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (!gameStarted) return;
+
+            //Get position relative to gameboard
+            var pos = e.GetPosition(GameBoard);
+
+            if (pos.X < offsetX || pos.X >= GameBoard.ActualWidth - offsetX) return;
+            if (pos.Y < offsetY || pos.Y >= GameBoard.ActualHeight - offsetY) return;
+
+            int col = (int)((pos.X - offsetX) / CellWidth);
+            int row = (int)((pos.Y - offsetY) / CellHeight);
+
+            if(TTTBoard[row, col] == 0)
+            {
+                //Place block down
                 TextBlock newText = new TextBlock();
                 if (isXTurn)
                 {
                     newText.Text = "X";
                     newText.Foreground = new SolidColorBrush(Colors.DarkSlateBlue);
-                    TTTBoard[cellRow, cellCol] = 1;
+                    TTTBoard[row, col] = 1;
                 }
                 else
                 {
                     newText.Text = "O";
                     newText.Foreground = new SolidColorBrush(Colors.DarkRed);
-                    TTTBoard[cellRow, cellCol] = 2;
+                    TTTBoard[row, col] = 2;
                 }
                 newText.FontWeight = FontWeights.Bold;
-                (sender as Button).Content = newText;
-                (sender as Button).IsEnabled = false;
+                setChoiceBlockText(choiceBox, newText);
+                choiceBox.Opacity = 0.75;
+                prevPos = -1;
+                choiceBox = createChoiceBlock();
 
                 //Checkwin
-                int result = checkWin(cellRow, cellCol);
-                if(result != GAME_NOT_OVER)
+                int result = checkWin(row, col);
+                if (result != GAME_NOT_OVER)
                 {
                     StartButton.IsEnabled = true;
                     LoadButton.IsEnabled = true;
@@ -248,10 +332,10 @@ namespace BigTicTacToe
                 }
 
                 //Change to next Turn
-                isXTurn = !isXTurn; // Model / State
+                isXTurn = !isXTurn; 
                 ShowTurn();
-            }    
-
+            }
+           
         }
 
         private void ShowTurn()
@@ -283,20 +367,26 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[row, i] == 0 || TTTBoard[row, col] != TTTBoard[row, i])
                 {
-                    if(TTTBoard[row, i] != 0)
+                    if (count == 5 && TTTBoard[row, i] != 0)
                     {
-                        if (i < col) barricaded[0] = true;
-                        if (i > col) barricaded[1] = true;
+                        barricaded[1] = true;
+                        if (i - 5 - 1 >= 0 && TTTBoard[row, i - 5 - 1] == TTTBoard[row, i]) barricaded[0] = true;
+                        if (barricaded[0] && barricaded[1]) count = 0;
+                        barricaded = Array.ConvertAll(barricaded, x => false);
                     }
-                    checkHorizontal = count > checkHorizontal ? count : checkHorizontal;
+                    checkHorizontal = checkHorizontal < 5 ? count > checkHorizontal ? count : checkHorizontal :
+                        count == 5 ? count : checkHorizontal;
                     count = 0;
                 }
                 else
+                {
                     count++;
+                }
             }
-            
-            checkHorizontal = count > checkHorizontal ? count : checkHorizontal;
-            if (checkHorizontal == 5 && (!barricaded[0]||!barricaded[1]) )
+
+            checkHorizontal = checkHorizontal < 5 ? count > checkHorizontal ? count : checkHorizontal :
+                        count == 5 ? count : checkHorizontal;
+            if (checkHorizontal == 5)
             {
                 if (isXTurn) return X_WIN;
                 else return O_WIN;
@@ -312,20 +402,24 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[i, col] == 0 || TTTBoard[row, col] != TTTBoard[i, col])
                 {
-                    if (TTTBoard[i, col] != 0)
+                    if (count == 5 && TTTBoard[i, col] != 0)
                     {
-                        if (i < row) barricaded[0] = true;
-                        if (i > row) barricaded[1] = true;
+                        barricaded[1] = true;
+                        if (i - 5 - 1 >= 0 && TTTBoard[i - 5 - 1, col] == TTTBoard[i, col]) barricaded[0] = true;
+                        if (barricaded[0] && barricaded[1]) count = 0;
+                        barricaded = Array.ConvertAll(barricaded, x => false);
                     }
-                    checkVertical = count > checkVertical ? count : checkVertical;
+                    checkVertical = checkVertical < 5 ? count > checkVertical ? count : checkVertical :
+                       count == 5 ? count : checkVertical;
                     count = 0;
                 }
                 else
                     count++;
             }
 
-            checkVertical = count > checkVertical ? count : checkVertical;
-            if (checkVertical == 5 && (!barricaded[0] || !barricaded[1]))
+            checkVertical = checkVertical < 5 ? count > checkVertical ? count : checkVertical :
+                       count == 5 ? count : checkVertical;
+            if (checkVertical == 5)
             {
                 if (isXTurn) return X_WIN;
                 else return O_WIN;
@@ -349,20 +443,25 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[i, j] == 0 || TTTBoard[row, col] != TTTBoard[i, j])
                 {
-                    if (TTTBoard[i, j] != 0)
+                    if (count == 5 && TTTBoard[i, j] != 0)
                     {
-                        if (i < row) barricaded[0] = true;
-                        if (i > row) barricaded[1] = true;
+                        barricaded[1] = true;
+                        if (i - 5 - 1 >= 0 && j - 5 - 1 >= 0 
+                            && TTTBoard[i - 5 - 1, j - 5 - 1] == TTTBoard[i, j]) barricaded[0] = true;
+                        if (barricaded[0] && barricaded[1]) count = 0;
+                        barricaded = Array.ConvertAll(barricaded, x => false);
                     }
-                    checkDiagonal = count > checkDiagonal ? count : checkDiagonal;
+                    checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
+                       count == 5 ? count : checkDiagonal;
                     count = 0;
                 }
                 else
                     count++;
             }
 
-            checkDiagonal = count > checkDiagonal ? count : checkDiagonal;
-            if (checkDiagonal == 5 && (!barricaded[0] || !barricaded[1]))
+            checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
+                       count == 5 ? count : checkDiagonal;
+            if (checkDiagonal == 5)
             {
                 if (isXTurn) return X_WIN;
                 else return O_WIN;
@@ -385,19 +484,24 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[i, j] == 0 || TTTBoard[row, col] != TTTBoard[i, j])
                 {
-                    if (TTTBoard[i, j] != 0)
+                    if (count == 5 && TTTBoard[i, j] != 0)
                     {
-                        if (i < row) barricaded[0] = true;
-                        if (i > row) barricaded[1] = true;
+                        barricaded[1] = true;
+                        if (i + 5 + 1 <= numOfRows - 1 && j - 5 - 1 >= 0
+                            && TTTBoard[i + 5 + 1, j - 5 - 1] == TTTBoard[i, j]) barricaded[0] = true;
+                        if (barricaded[0] && barricaded[1]) count = 0;
+                        barricaded = Array.ConvertAll(barricaded, x => false);
                     }
-                    checkDiagonal = count > checkDiagonal ? count : checkDiagonal;
+                    checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
+                       count == 5 ? count : checkDiagonal;
                     count = 0;
                 }
                 else
                     count++;
             }
 
-            checkDiagonal = count > checkDiagonal ? count : checkDiagonal;
+            checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
+                       count == 5 ? count : checkDiagonal;
             if (checkDiagonal == 5 && (!barricaded[0] || !barricaded[1]))
             {
                 if (isXTurn) return X_WIN;

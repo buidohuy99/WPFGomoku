@@ -9,7 +9,17 @@
         Loaded="Window_Loaded"
         Title="Tic Tac Toe" Height="450" Width="800" ResizeMode="NoResize">
     <Window.Resources>
-        
+
+        <Style x:Key="GameBoardStyle" TargetType="{x:Type Canvas}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.75"/>
+                    <Setter Property="Background" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="TicTacToeCell" TargetType="{x:Type Button}">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="#faf48e" />
@@ -78,7 +88,8 @@
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" BorderBrush="#faf48e" BorderThickness="0,0,1,0" >
-            <Canvas Name="GameBoard" >
+            <Canvas Name="GameBoard" Style="{StaticResource GameBoardStyle}" Margin="0,0,0.2,0" MouseMove="GameBoard_MouseMove"
+                    MouseLeftButtonDown="GameBoard_MouseLeftButtonDown">
                 
             </Canvas>
         </Border>
