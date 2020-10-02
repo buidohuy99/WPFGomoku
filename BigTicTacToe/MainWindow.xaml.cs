@@ -166,7 +166,7 @@ namespace BigTicTacToe
 
         private void SaveGame_Clicked(object sender, RoutedEventArgs e)
         {
-            const string filename = "save.txt";
+            const string filename = "save.tictactoe";
 
             var writer = new StreamWriter(filename);
             // Dong dau tien la luot di hien tai
@@ -196,6 +196,10 @@ namespace BigTicTacToe
             if (screen.ShowDialog() == true)
             {
                 var filename = screen.FileName;
+                if (!System.IO.Path.GetExtension(filename).ToLower().Equals(".tictactoe")) {
+                    MessageBox.Show("Wrong file extension");
+                    return;
+                }
 
                 var reader = new StreamReader(filename);
                 var firstLine = reader.ReadLine();
@@ -359,7 +363,7 @@ namespace BigTicTacToe
         {
             //Vars for checking
             int count = 0;
-            bool[] barricaded = { false, false};
+            bool barricaded = false;
 
             //Check horizontal
             int checkHorizontal = 0;
@@ -367,16 +371,18 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[row, i] == 0 || TTTBoard[row, col] != TTTBoard[row, i])
                 {
-                    if (count == 5 && TTTBoard[row, i] != 0)
-                    {
-                        barricaded[1] = true;
-                        if (i - 5 - 1 >= 0 && TTTBoard[row, i - 5 - 1] == TTTBoard[row, i]) barricaded[0] = true;
-                        if (barricaded[0] && barricaded[1]) count = 0;
-                        barricaded = Array.ConvertAll(barricaded, x => false);
-                    }
+                    //if(count >= 5 && TTTBoard[row, i] != 0) if acknowledge more than 5 pieces as a win (eg 6,7 pieces)
                     checkHorizontal = checkHorizontal < 5 ? count > checkHorizontal ? count : checkHorizontal :
                         count == 5 ? count : checkHorizontal;
                     count = 0;
+                    if (TTTBoard[row, i] != 0)
+                    {
+                        if (!barricaded)
+                           barricaded = true;
+                        else {
+                           checkHorizontal = 0;  
+                        }
+                    }        
                 }
                 else
                 {
@@ -386,6 +392,8 @@ namespace BigTicTacToe
 
             checkHorizontal = checkHorizontal < 5 ? count > checkHorizontal ? count : checkHorizontal :
                         count == 5 ? count : checkHorizontal;
+
+            //if(checkHorizontal >= 5) if acknowledge more than 5 pieces as a win (eg 6,7 pieces)
             if (checkHorizontal == 5)
             {
                 if (isXTurn) return X_WIN;
@@ -394,7 +402,7 @@ namespace BigTicTacToe
 
             //Reset vars
             count = 0;
-            barricaded = Array.ConvertAll(barricaded, x => false);
+            barricaded = false;
 
             //Check vertical
             int checkVertical = 0;
@@ -402,16 +410,18 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[i, col] == 0 || TTTBoard[row, col] != TTTBoard[i, col])
                 {
-                    if (count == 5 && TTTBoard[i, col] != 0)
-                    {
-                        barricaded[1] = true;
-                        if (i - 5 - 1 >= 0 && TTTBoard[i - 5 - 1, col] == TTTBoard[i, col]) barricaded[0] = true;
-                        if (barricaded[0] && barricaded[1]) count = 0;
-                        barricaded = Array.ConvertAll(barricaded, x => false);
-                    }
                     checkVertical = checkVertical < 5 ? count > checkVertical ? count : checkVertical :
                        count == 5 ? count : checkVertical;
                     count = 0;
+                    if (TTTBoard[i, col] != 0)
+                    {
+                        if (!barricaded)
+                            barricaded = true;
+                        else
+                        {
+                            checkVertical = 0;
+                        }
+                    }             
                 }
                 else
                     count++;
@@ -419,6 +429,7 @@ namespace BigTicTacToe
 
             checkVertical = checkVertical < 5 ? count > checkVertical ? count : checkVertical :
                        count == 5 ? count : checkVertical;
+            //if(checkVertical >= 5) if acknowledge more than 5 pieces as a win (eg 6,7 pieces)
             if (checkVertical == 5)
             {
                 if (isXTurn) return X_WIN;
@@ -427,7 +438,7 @@ namespace BigTicTacToe
 
             //Reset vars
             count = 0;
-            barricaded = Array.ConvertAll(barricaded, x => false);
+            barricaded = false;
 
             //Check main diagonal
             int checkDiagonal = 0;
@@ -443,17 +454,18 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[i, j] == 0 || TTTBoard[row, col] != TTTBoard[i, j])
                 {
-                    if (count == 5 && TTTBoard[i, j] != 0)
-                    {
-                        barricaded[1] = true;
-                        if (i - 5 - 1 >= 0 && j - 5 - 1 >= 0 
-                            && TTTBoard[i - 5 - 1, j - 5 - 1] == TTTBoard[i, j]) barricaded[0] = true;
-                        if (barricaded[0] && barricaded[1]) count = 0;
-                        barricaded = Array.ConvertAll(barricaded, x => false);
-                    }
                     checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
                        count == 5 ? count : checkDiagonal;
                     count = 0;
+                    if (TTTBoard[i, j] != 0)
+                    {
+                        if (!barricaded)
+                            barricaded = true;
+                        else
+                        {
+                            checkDiagonal = 0;
+                        }
+                    }      
                 }
                 else
                     count++;
@@ -461,6 +473,7 @@ namespace BigTicTacToe
 
             checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
                        count == 5 ? count : checkDiagonal;
+            //if(checkDiagonal >= 5) if acknowledge more than 5 pieces as a win (eg 6,7 pieces)
             if (checkDiagonal == 5)
             {
                 if (isXTurn) return X_WIN;
@@ -469,7 +482,7 @@ namespace BigTicTacToe
 
             //Reset vars
             count = 0;
-            barricaded = Array.ConvertAll(barricaded, x => false);
+            barricaded = false;
 
             //Check sub diagonal
             checkDiagonal = 0;
@@ -484,17 +497,18 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[i, j] == 0 || TTTBoard[row, col] != TTTBoard[i, j])
                 {
-                    if (count == 5 && TTTBoard[i, j] != 0)
-                    {
-                        barricaded[1] = true;
-                        if (i + 5 + 1 <= numOfRows - 1 && j - 5 - 1 >= 0
-                            && TTTBoard[i + 5 + 1, j - 5 - 1] == TTTBoard[i, j]) barricaded[0] = true;
-                        if (barricaded[0] && barricaded[1]) count = 0;
-                        barricaded = Array.ConvertAll(barricaded, x => false);
-                    }
                     checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
                        count == 5 ? count : checkDiagonal;
                     count = 0;
+                    if (TTTBoard[i, j] != 0)
+                    {
+                        if (!barricaded)
+                            barricaded = true;
+                        else
+                        {
+                            checkDiagonal = 0;
+                        }
+                    }           
                 }
                 else
                     count++;
@@ -502,7 +516,8 @@ namespace BigTicTacToe
 
             checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
                        count == 5 ? count : checkDiagonal;
-            if (checkDiagonal == 5 && (!barricaded[0] || !barricaded[1]))
+            //if(checkDiagonal >= 5) if acknowledge more than 5 pieces as a win (eg 6,7 pieces)
+            if (checkDiagonal == 5)
             {
                 if (isXTurn) return X_WIN;
                 else return O_WIN;
