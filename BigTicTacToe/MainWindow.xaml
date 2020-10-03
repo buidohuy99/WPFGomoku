@@ -99,11 +99,19 @@
                 
             </Border>
             <Button Name="StartButton" Content="Start" Width="150" Click="StartGame_Clicked"
-                    Style="{StaticResource DefaultButton}" Margin="0,0,0,15"/>
-            <Button Name="SaveButton" Content="Save" Width="150" Click="SaveGame_Clicked"
-                    Style="{StaticResource DefaultButton}" Margin="0,0,0,15"/>
-            <Button Name="LoadButton" Content="Load" Width="150" Click="LoadGame_Clicked"
+                    Style="{StaticResource DefaultButton}" Margin="0,0,0,10"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,5">
+            <Button Name="SaveButton" Content="Save" Width="125" Click="SaveGame_Clicked"
+                    Style="{StaticResource DefaultButton}" Margin="0,0,10,0"/>
+            <Button Name="LoadButton" Content="Load" Width="125" Click="LoadGame_Clicked"
                     Style="{StaticResource DefaultButton}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Button Name="UndoButton" Content="Undo" Width="75" Click="UndoMove_Clicked"
+                    Style="{StaticResource DefaultButton}" Margin="0,0,10,0"/>
+                <Button Name="RedoButton" Content="Redo" Width="75" Click="RedoMove_Clicked"
+                    Style="{StaticResource DefaultButton}"/>
+            </StackPanel>
 
         </StackPanel>
     </Grid>

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,11 +24,17 @@ namespace BigTicTacToe
         const int X_WIN = 1;
         const int O_WIN = 2;
         const int GAME_NOT_OVER = 0;
+        const int OUT_OF_CELLS = 3;
 
         //Gameplay vars
+        int numberOfCellsLeft;
         bool gameStarted = false;
         int[,] TTTBoard;
         bool isXTurn = true;
+        List<Tuple<int[,], bool>> history = new List<Tuple<int[,], bool>>();
+        bool startGameIsXTurn;
+        int[,] initialState;
+        int currentState = -1;
 
         //UI related
         int numOfRows, numOfCols;
@@ -50,6 +57,7 @@ namespace BigTicTacToe
             offsetY = (GameBoard.ActualHeight - numOfRows * CellHeight) / 2;
 
             TTTBoard = new int[numOfRows, numOfCols];
+            numberOfCellsLeft = numOfCols * numOfRows;
             
             //Populate Canvas
             for(int i = 0; i < numOfRows; i++)
@@ -111,6 +119,8 @@ namespace BigTicTacToe
 
             //Disable Saving
             SaveButton.IsEnabled = false;
+            UndoButton.IsEnabled = false;
+            RedoButton.IsEnabled = false;
 
             //Disable Game Board
             GameBoard.IsEnabled = false;
@@ -151,16 +161,59 @@ namespace BigTicTacToe
             if (makeDisable) GameBoard.IsEnabled = false;
         }
 
+        private void SetBoard(int[,] newBoard) {
+            int count = GameBoard.Children.Count;
+            int numOfLines = numOfRows + numOfCols - 2;
+            GameBoard.Children.RemoveRange(numOfLines, count - numOfLines);
+            for (int i = 0; i < numOfRows; i++)
+            {
+                for (int j = 0; j < numOfCols; j++)
+                {
+                    TTTBoard[i, j] = newBoard[i, j];
+                    if (TTTBoard[i, j] == 0) continue;
+
+                    TextBlock newText = new TextBlock();
+                    if (TTTBoard[i, j] == 1)
+                    {
+                        newText.Text = "X";
+                        newText.Foreground = new SolidColorBrush(Colors.DarkSlateBlue);
+                    }
+                    else if (TTTBoard[i, j] == 2)
+                    {
+                        newText.Text = "O";
+                        newText.Foreground = new SolidColorBrush(Colors.DarkRed);
+                    }
+                    newText.FontWeight = FontWeights.Bold;
+
+                    setChoiceBlockText(choiceBox, newText);
+                    choiceBox.Opacity = 0.75;
+
+                    choiceBox.Tag = new Tuple<int, int>(i, j);
+                    GameBoard.Children.Add(choiceBox);
+                    Canvas.SetLeft(choiceBox, offsetX + CellWidth * j);
+                    Canvas.SetTop(choiceBox, offsetY + CellHeight * i);
+
+                    choiceBox = createChoiceBlock();
+                }
+            }
+        }
+
         private void StartGame_Clicked(object sender, RoutedEventArgs e)
         {
             var random = new Random();
             int turn = random.Next(0, 2);
+            numberOfCellsLeft = numOfCols * numOfRows;
             isXTurn = Convert.ToBoolean(turn);
+            startGameIsXTurn = isXTurn;
+            initialState = TTTBoard.Clone() as int[,];
             ResetBoard(false, true);
             ShowTurn();
             StartButton.IsEnabled = false;
             LoadButton.IsEnabled = false;
             SaveButton.IsEnabled = true;
+            UndoButton.IsEnabled = false;
+            RedoButton.IsEnabled = false;
+
             gameStarted = true;
         }
 
@@ -171,6 +224,8 @@ namespace BigTicTacToe
             var writer = new StreamWriter(filename);
             // Dong dau tien la luot di hien tai
             writer.WriteLine(isXTurn ? "X" : "O");
+            // Dong thu hai la so o con trong
+            writer.WriteLine(numberOfCellsLeft);
 
             // Theo sau la ma tran bieu dien game
             for (int i = 0; i < numOfRows; i++)
@@ -204,6 +259,8 @@ namespace BigTicTacToe
                 var reader = new StreamReader(filename);
                 var firstLine = reader.ReadLine();
                 isXTurn = firstLine == "X";
+                startGameIsXTurn = isXTurn;
+                numberOfCellsLeft = int.Parse(reader.ReadLine());
                 ShowTurn();
                 ResetBoard(false, true);
 
@@ -242,9 +299,12 @@ namespace BigTicTacToe
                         choiceBox = createChoiceBlock();
                     }
                 }
+                initialState = TTTBoard.Clone() as int[,];
 
                 StartButton.IsEnabled = LoadButton.IsEnabled = false;
                 SaveButton.IsEnabled = true;
+                UndoButton.IsEnabled = false;
+                RedoButton.IsEnabled = false;
                 gameStarted = true;
 
                 reader.Close();
@@ -319,6 +379,16 @@ namespace BigTicTacToe
                 choiceBox.Opacity = 0.75;
                 prevPos = -1;
                 choiceBox = createChoiceBlock();
+                numberOfCellsLeft--;
+
+                currentState++;
+                UndoButton.IsEnabled = true;
+                if (currentState < history.Count) { 
+                    history.RemoveRange(currentState, history.Count - currentState);
+                    RedoButton.IsEnabled = false;
+                }
+                int[,] copy = TTTBoard.Clone() as int[,];
+                history.Add(new Tuple<int[,], bool>(copy,!isXTurn));
 
                 //Checkwin
                 int result = checkWin(row, col);
@@ -330,6 +400,7 @@ namespace BigTicTacToe
                     ResetBoard(true, false);
                     if (result == X_WIN) MessageBox.Show("X wins!");
                     if (result == O_WIN) MessageBox.Show("O wins!");
+                    if (result == OUT_OF_CELLS) MessageBox.Show("Game is a tie!");
                     ResetBoard(true, true);
                     GameStatus.Child = gameHome;
                     return;
@@ -340,6 +411,41 @@ namespace BigTicTacToe
                 ShowTurn();
             }
            
+        }
+
+        private void UndoMove_Clicked(object sender, RoutedEventArgs e)
+        {
+            if (currentState == -1) {
+                return;
+            }
+            prevPos = -1;
+            currentState--;
+            if (currentState < 0) UndoButton.IsEnabled = false;
+            if (currentState < history.Count - 1) RedoButton.IsEnabled = true;
+            if (currentState == -1) {
+                SetBoard(initialState);
+                isXTurn = startGameIsXTurn;
+                ShowTurn();
+                return;
+            }
+            SetBoard(history[currentState].Item1);
+            isXTurn = history[currentState].Item2;
+            ShowTurn();
+        }
+
+        private void RedoMove_Clicked(object sender, RoutedEventArgs e)
+        {
+            if(currentState >= history.Count - 1)
+            {
+                return;
+            }
+            prevPos = -1;
+            currentState++;
+            if (currentState >= history.Count - 1) RedoButton.IsEnabled = false;
+            if (currentState >= 0) UndoButton.IsEnabled = true;
+            SetBoard(history[currentState].Item1);
+            isXTurn = history[currentState].Item2;
+            ShowTurn();
         }
 
         private void ShowTurn()
@@ -547,6 +653,10 @@ namespace BigTicTacToe
             {
                 if (isXTurn) return X_WIN;
                 else return O_WIN;
+            }
+
+            if (numberOfCellsLeft == 0) {
+                return OUT_OF_CELLS;
             }
 
             return GAME_NOT_OVER;
