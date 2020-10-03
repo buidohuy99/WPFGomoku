@@ -363,6 +363,7 @@ namespace BigTicTacToe
         {
             //Vars for checking
             int count = 0;
+            int streak = 0;
             bool barricaded = false;
 
             //Check horizontal
@@ -371,36 +372,40 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[row, i] == 0 || TTTBoard[row, col] != TTTBoard[row, i])
                 {
-                    //if(count >= 5 && TTTBoard[row, i] != 0) if acknowledge more than 5 pieces as a win (eg 6,7 pieces)
-                    checkHorizontal = checkHorizontal < 5 ? count > checkHorizontal ? count : checkHorizontal :
-                        count == 5 ? count : checkHorizontal;
+                    //Calculate if there is a streak of 5 or a streak of >= 5
+                    streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+                    //Reset counter
                     count = 0;
-                    if (TTTBoard[row, i] != 0)
-                    {
+                    //If its an opponent's piece
+                    if (TTTBoard[row, i] != 0) {
+                        //My pieces after that piece the opponent placed will be barricaded
                         if (!barricaded)
-                           barricaded = true;
-                        else {
-                           checkHorizontal = 0;  
+                        {
+                            //So I set it to true
+                            barricaded = true;
+                            //Save my current streak on the left of the barricade placed my the opponent
+                            checkHorizontal = streak;
                         }
-                    }        
+                        //Remove streak if opponent successfully barricade my streak
+                        else
+                            streak = 0;
+                    }
                 }
                 else
-                {
                     count++;
-                }
             }
 
-            checkHorizontal = checkHorizontal < 5 ? count > checkHorizontal ? count : checkHorizontal :
-                        count == 5 ? count : checkHorizontal;
+            streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+            checkHorizontal = checkHorizontal >= 5 ? checkHorizontal : streak;
 
-            //if(checkHorizontal >= 5) if acknowledge more than 5 pieces as a win (eg 6,7 pieces)
-            if (checkHorizontal == 5)
+            if (checkHorizontal >= 5)
             {
                 if (isXTurn) return X_WIN;
                 else return O_WIN;
             }
 
             //Reset vars
+            streak = 0;
             count = 0;
             barricaded = false;
 
@@ -410,27 +415,34 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[i, col] == 0 || TTTBoard[row, col] != TTTBoard[i, col])
                 {
-                    checkVertical = checkVertical < 5 ? count > checkVertical ? count : checkVertical :
-                       count == 5 ? count : checkVertical;
+                    //Calculate if there is a streak of 5 or a streak of >= 5
+                    streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+                    //Reset counter
                     count = 0;
+                    //If it's an opponent's piece
                     if (TTTBoard[i, col] != 0)
                     {
+                        //My pieces after that piece the opponent placed will be barricaded
                         if (!barricaded)
-                            barricaded = true;
-                        else
                         {
-                            checkVertical = 0;
+                            //So I set it to true
+                            barricaded = true;
+                            //Save my current streak on the left of the barricade placed my the opponent
+                            checkVertical = streak;
                         }
+                        //Remove streak if opponent successfully barricade my streak
+                        else
+                            streak = 0;
                     }             
                 }
                 else
                     count++;
             }
 
-            checkVertical = checkVertical < 5 ? count > checkVertical ? count : checkVertical :
-                       count == 5 ? count : checkVertical;
-            //if(checkVertical >= 5) if acknowledge more than 5 pieces as a win (eg 6,7 pieces)
-            if (checkVertical == 5)
+            streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+            checkVertical = checkVertical >= 5 ? checkVertical : streak;
+
+            if (checkVertical >= 5)
             {
                 if (isXTurn) return X_WIN;
                 else return O_WIN;
@@ -438,6 +450,7 @@ namespace BigTicTacToe
 
             //Reset vars
             count = 0;
+            streak = 0;
             barricaded = false;
 
             //Check main diagonal
@@ -454,33 +467,40 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[i, j] == 0 || TTTBoard[row, col] != TTTBoard[i, j])
                 {
-                    checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
-                       count == 5 ? count : checkDiagonal;
+                    //Calculate if there is a streak of 5 or a streak of >= 5
+                    streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+                    //Reset counter
                     count = 0;
+                    //If it's an opponent's piece
                     if (TTTBoard[i, j] != 0)
                     {
+                        //My pieces after that piece the opponent placed will be barricaded
                         if (!barricaded)
-                            barricaded = true;
-                        else
                         {
-                            checkDiagonal = 0;
+                            //So I set it to true
+                            barricaded = true;
+                            //Save my current streak on the left of the barricade placed my the opponent
+                            checkDiagonal = streak;
                         }
+                        //Remove streak if opponent successfully barricade my streak
+                        else
+                            streak = 0;
                     }      
                 }
                 else
                     count++;
             }
 
-            checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
-                       count == 5 ? count : checkDiagonal;
-            //if(checkDiagonal >= 5) if acknowledge more than 5 pieces as a win (eg 6,7 pieces)
-            if (checkDiagonal == 5)
+            streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+            checkDiagonal = checkDiagonal >= 5 ? checkDiagonal : streak;
+            if (checkDiagonal >= 5)
             {
                 if (isXTurn) return X_WIN;
                 else return O_WIN;
             }
 
             //Reset vars
+            streak = 0;
             count = 0;
             barricaded = false;
 
@@ -497,27 +517,33 @@ namespace BigTicTacToe
             {
                 if (TTTBoard[i, j] == 0 || TTTBoard[row, col] != TTTBoard[i, j])
                 {
-                    checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
-                       count == 5 ? count : checkDiagonal;
+                    //Calculate if there is a streak of 5 or a streak of >= 5
+                    streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+                    //Reset counter
                     count = 0;
+                    //If it's an opponent's piece
                     if (TTTBoard[i, j] != 0)
                     {
+                        //My pieces after that piece the opponent placed will be barricaded
                         if (!barricaded)
-                            barricaded = true;
-                        else
                         {
-                            checkDiagonal = 0;
+                            //So I set it to true
+                            barricaded = true;
+                            //Save my current streak on the left of the barricade placed my the opponent
+                            checkDiagonal = streak;
                         }
+                        //Remove streak if opponent successfully barricade my streak
+                        else
+                            streak = 0;
                     }           
                 }
                 else
                     count++;
             }
 
-            checkDiagonal = checkDiagonal < 5 ? count > checkDiagonal ? count : checkDiagonal :
-                       count == 5 ? count : checkDiagonal;
-            //if(checkDiagonal >= 5) if acknowledge more than 5 pieces as a win (eg 6,7 pieces)
-            if (checkDiagonal == 5)
+            streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+            checkDiagonal = checkDiagonal >= 5 ? checkDiagonal : streak;
+            if (checkDiagonal >= 5)
             {
                 if (isXTurn) return X_WIN;
                 else return O_WIN;
