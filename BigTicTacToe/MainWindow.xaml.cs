@@ -402,6 +402,8 @@ namespace BigTicTacToe
                     if (result == O_WIN) MessageBox.Show("O wins!");
                     if (result == OUT_OF_CELLS) MessageBox.Show("Game is a tie!");
                     ResetBoard(true, true);
+                    UndoButton.IsEnabled = false;
+                    RedoButton.IsEnabled = false;
                     GameStatus.Child = gameHome;
                     return;
                 }
@@ -420,6 +422,7 @@ namespace BigTicTacToe
             }
             prevPos = -1;
             currentState--;
+            numberOfCellsLeft++;
             if (currentState < 0) UndoButton.IsEnabled = false;
             if (currentState < history.Count - 1) RedoButton.IsEnabled = true;
             if (currentState == -1) {
@@ -441,6 +444,7 @@ namespace BigTicTacToe
             }
             prevPos = -1;
             currentState++;
+            numberOfCellsLeft--;
             if (currentState >= history.Count - 1) RedoButton.IsEnabled = false;
             if (currentState >= 0) UndoButton.IsEnabled = true;
             SetBoard(history[currentState].Item1);
