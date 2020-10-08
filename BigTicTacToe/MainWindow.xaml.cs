@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -31,7 +32,8 @@ namespace BigTicTacToe
         bool gameStarted = false;
         int[,] TTTBoard;
         bool isXTurn = true;
-        List<Tuple<int[,], bool>> history = new List<Tuple<int[,], bool>>();
+        List<Move> history = new List<Move>();
+
         bool startGameIsXTurn;
         int[,] initialState;
         int currentState = -1;
@@ -161,41 +163,29 @@ namespace BigTicTacToe
             if (makeDisable) GameBoard.IsEnabled = false;
         }
 
-        private void SetBoard(int[,] newBoard) {
-            int count = GameBoard.Children.Count;
-            int numOfLines = numOfRows + numOfCols - 2;
-            GameBoard.Children.RemoveRange(numOfLines, count - numOfLines);
-            for (int i = 0; i < numOfRows; i++)
+        private void createTextBlockAt(Move move) {
+            Border block = createChoiceBlock();
+            //Place block down
+            TextBlock newText = new TextBlock();
+            if (move.isXTurn)
             {
-                for (int j = 0; j < numOfCols; j++)
-                {
-                    TTTBoard[i, j] = newBoard[i, j];
-                    if (TTTBoard[i, j] == 0) continue;
-
-                    TextBlock newText = new TextBlock();
-                    if (TTTBoard[i, j] == 1)
-                    {
-                        newText.Text = "X";
-                        newText.Foreground = new SolidColorBrush(Colors.DarkSlateBlue);
-                    }
-                    else if (TTTBoard[i, j] == 2)
-                    {
-                        newText.Text = "O";
-                        newText.Foreground = new SolidColorBrush(Colors.DarkRed);
-                    }
-                    newText.FontWeight = FontWeights.Bold;
-
-                    setChoiceBlockText(choiceBox, newText);
-                    choiceBox.Opacity = 0.75;
-
-                    choiceBox.Tag = new Tuple<int, int>(i, j);
-                    GameBoard.Children.Add(choiceBox);
-                    Canvas.SetLeft(choiceBox, offsetX + CellWidth * j);
-                    Canvas.SetTop(choiceBox, offsetY + CellHeight * i);
-
-                    choiceBox = createChoiceBlock();
-                }
+                newText.Text = "X";
+                newText.Foreground = new SolidColorBrush(Colors.DarkSlateBlue);
+                TTTBoard[move.row, move.col] = 1;
             }
+            else
+            {
+                newText.Text = "O";
+                newText.Foreground = new SolidColorBrush(Colors.DarkRed);
+                TTTBoard[move.row, move.col] = 2;
+            }
+            newText.FontWeight = FontWeights.Bold;
+            setChoiceBlockText(block, newText);
+            block.Opacity = 0.75;
+            block.Tag = new Tuple<int, int>(history[currentState].row, history[currentState].col);
+            GameBoard.Children.Add(block);
+            Canvas.SetLeft(block, offsetX + CellWidth * history[currentState].col);
+            Canvas.SetTop(block, offsetY + CellHeight * history[currentState].row);
         }
 
         private void StartGame_Clicked(object sender, RoutedEventArgs e)
@@ -205,7 +195,6 @@ namespace BigTicTacToe
             numberOfCellsLeft = numOfCols * numOfRows;
             isXTurn = Convert.ToBoolean(turn);
             startGameIsXTurn = isXTurn;
-            initialState = TTTBoard.Clone() as int[,];
             ResetBoard(false, true);
             ShowTurn();
             StartButton.IsEnabled = false;
@@ -318,31 +307,45 @@ namespace BigTicTacToe
 
             //Get position relative to gameboard
             var pos = e.GetPosition(GameBoard);
+           
+            if (pos.X < offsetX || pos.X >= GameBoard.ActualWidth - offsetX || pos.Y < offsetY || pos.Y >= GameBoard.ActualHeight - offsetY)
+            {             
+                if (prevPos != -1) {
+                    GameBoard.Children.RemoveAt(prevPos);
+                    prevPos = -1;
+                }
+                return;
+            }
 
             if (prevPos != -1)
             {
                 var item = (GameBoard.Children[prevPos] as Border).Tag as Tuple<int, int>;
                 int prevCellRow = item.Item1;
                 int prevCellCol = item.Item2;
+                
                 if (pos.X >= offsetX + prevCellCol * CellWidth && pos.X < offsetX + (prevCellCol + 1) * CellWidth
-                    && pos.Y >= offsetY + prevCellRow * CellHeight && pos.Y < offsetY + (prevCellRow + 1) * CellHeight)
-                    return;
+                    && pos.Y >= offsetY + prevCellRow * CellHeight && pos.Y < offsetY + (prevCellRow + 1) * CellHeight) return;
+
                 GameBoard.Children.RemoveAt(prevPos);
                 prevPos = -1;
             }
 
-            if (pos.X < offsetX || pos.X >= GameBoard.ActualWidth - offsetX) return;
-            if (pos.Y < offsetY || pos.Y >= GameBoard.ActualHeight - offsetY) return;
-
             int col = (int)((pos.X - offsetX) / CellWidth);
             int row = (int)((pos.Y - offsetY) / CellHeight);
-            choiceBox.Tag = new Tuple<int, int>(row, col);
-
             if (TTTBoard[row, col] != 0) return;
+
+            choiceBox.Tag = new Tuple<int, int>(row, col);
             prevPos = GameBoard.Children.Count;
             GameBoard.Children.Add(choiceBox);
             Canvas.SetLeft(choiceBox, offsetX + CellWidth * col);
             Canvas.SetTop(choiceBox, offsetY + CellHeight * row);
+        }
+
+        private void colorCells(List<Move> cells, SolidColorBrush color) {
+            foreach (Move iteration in cells) {
+                Border border = GameBoard.Children.OfType<Border>().Where(x => (x.Tag as Tuple<int, int>).Item1 == iteration.row && (x.Tag as Tuple<int, int>).Item2 == iteration.col).FirstOrDefault();
+                border.Background = color;
+            }
         }
 
         private void GameBoard_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -387,20 +390,23 @@ namespace BigTicTacToe
                     history.RemoveRange(currentState, history.Count - currentState);
                     RedoButton.IsEnabled = false;
                 }
-                int[,] copy = TTTBoard.Clone() as int[,];
-                history.Add(new Tuple<int[,], bool>(copy,!isXTurn));
+                history.Add(new Move(row,col,isXTurn));
 
                 //Checkwin
-                int result = checkWin(row, col);
-                if (result != GAME_NOT_OVER)
+                Tuple<int, List<Move>> result = checkWin(row, col);
+                if (result.Item1 != GAME_NOT_OVER)
                 {
                     StartButton.IsEnabled = true;
                     LoadButton.IsEnabled = true;
                     SaveButton.IsEnabled = false;
                     ResetBoard(true, false);
-                    if (result == X_WIN) MessageBox.Show("X wins!");
-                    if (result == O_WIN) MessageBox.Show("O wins!");
-                    if (result == OUT_OF_CELLS) MessageBox.Show("Game is a tie!");
+                    if (result.Item2 != null)
+                    {
+                        colorCells(result.Item2, new SolidColorBrush(Color.FromRgb(169, 255, 99)));
+                    }
+                    if (result.Item1 == X_WIN) MessageBox.Show("X wins!");
+                    if (result.Item1 == O_WIN) MessageBox.Show("O wins!");
+                    if (result.Item1 == OUT_OF_CELLS) MessageBox.Show("Game is a tie!");
                     ResetBoard(true, true);
                     UndoButton.IsEnabled = false;
                     RedoButton.IsEnabled = false;
@@ -420,20 +426,16 @@ namespace BigTicTacToe
             if (currentState == -1) {
                 return;
             }
-            prevPos = -1;
+            //Get move and update the block in
+            Move current = history[currentState];
+            GameBoard.Children.RemoveAt(GameBoard.Children.Count - 1);
+            isXTurn = current.isXTurn;
+            ShowTurn();
+            TTTBoard[history[currentState].row, history[currentState].col] = 0;
             currentState--;
             numberOfCellsLeft++;
             if (currentState < 0) UndoButton.IsEnabled = false;
-            if (currentState < history.Count - 1) RedoButton.IsEnabled = true;
-            if (currentState == -1) {
-                SetBoard(initialState);
-                isXTurn = startGameIsXTurn;
-                ShowTurn();
-                return;
-            }
-            SetBoard(history[currentState].Item1);
-            isXTurn = history[currentState].Item2;
-            ShowTurn();
+            if (currentState < history.Count - 1) RedoButton.IsEnabled = true;    
         }
 
         private void RedoMove_Clicked(object sender, RoutedEventArgs e)
@@ -442,13 +444,13 @@ namespace BigTicTacToe
             {
                 return;
             }
-            prevPos = -1;
             currentState++;
             numberOfCellsLeft--;
             if (currentState >= history.Count - 1) RedoButton.IsEnabled = false;
             if (currentState >= 0) UndoButton.IsEnabled = true;
-            SetBoard(history[currentState].Item1);
-            isXTurn = history[currentState].Item2;
+            isXTurn = !history[currentState].isXTurn;
+            TTTBoard[history[currentState].row, history[currentState].col] = isXTurn ? 1 : 2;
+            createTextBlockAt(history[currentState]);   
             ShowTurn();
         }
 
@@ -469,67 +471,85 @@ namespace BigTicTacToe
             GameStatus.Child = currentTurn; 
         }
 
-        private int checkWin(int row, int col)
+        private Tuple<int, List<Move>> checkWin(int row, int col)
         {
+            List<Move> longestStreak = new List<Move>();
+            Stack<Move> countStack = new Stack<Move>();
+            
             //Vars for checking
-            int count = 0;
-            int streak = 0;
             bool barricaded = false;
 
             //Check horizontal
-            int checkHorizontal = 0;
+            List<Move> streakCounter = new List<Move>();
             for(int i = 0; i < numOfCols; i++)
             {
                 if (TTTBoard[row, i] == 0 || TTTBoard[row, col] != TTTBoard[row, i])
                 {
                     //Calculate if there is a streak of 5 or a streak of >= 5
-                    streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+                    if (countStack.Count > streakCounter.Count) {
+                        streakCounter = countStack.ToList();
+                    }
                     //Reset counter
-                    count = 0;
+                    countStack.Clear();
                     //If its an opponent's piece
-                    if (TTTBoard[row, i] != 0) {
+                    if (TTTBoard[row, i] != 0)
+                    {
                         //My pieces after that piece the opponent placed will be barricaded
                         if (!barricaded)
                         {
                             //So I set it to true
                             barricaded = true;
-                            //Save my current streak on the left of the barricade placed my the opponent
-                            checkHorizontal = streak;
+                            //Save information of the longest streak before a barricade appear
+                            longestStreak = streakCounter.ToList();
                         }
                         //Remove streak if opponent successfully barricade my streak
                         else
-                            streak = 0;
+                        {
+                            streakCounter.Clear();
+                        }
                     }
                 }
                 else
-                    count++;
+                {
+                    countStack.Push(new Move(row, i, isXTurn));
+                }
             }
 
-            streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
-            checkHorizontal = checkHorizontal >= 5 ? checkHorizontal : streak;
-
-            if (checkHorizontal >= 5)
+            //Calculate if there is a streak of 5 or a streak of >= 5
+            if (countStack.Count > streakCounter.Count)
             {
-                if (isXTurn) return X_WIN;
-                else return O_WIN;
+                streakCounter = countStack.ToList();
+            }
+            if (longestStreak.Count < 5)
+            {
+                longestStreak = streakCounter.ToList();
+            }
+
+            if (longestStreak.Count >= 5)
+            {
+                if (isXTurn) return new Tuple<int, List<Move>>(X_WIN, longestStreak);
+                else return new Tuple<int, List<Move>>(O_WIN, longestStreak);
             }
 
             //Reset vars
-            streak = 0;
-            count = 0;
+            longestStreak.Clear();
+            countStack.Clear();
+            streakCounter.Clear();
             barricaded = false;
 
             //Check vertical
-            int checkVertical = 0;
             for(int i = 0; i < numOfRows; i++)
             {
                 if (TTTBoard[i, col] == 0 || TTTBoard[row, col] != TTTBoard[i, col])
                 {
                     //Calculate if there is a streak of 5 or a streak of >= 5
-                    streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+                    if (countStack.Count > streakCounter.Count)
+                    {
+                        streakCounter = countStack.ToList();
+                    }
                     //Reset counter
-                    count = 0;
-                    //If it's an opponent's piece
+                    countStack.Clear();
+                    //If its an opponent's piece
                     if (TTTBoard[i, col] != 0)
                     {
                         //My pieces after that piece the opponent placed will be barricaded
@@ -537,35 +557,44 @@ namespace BigTicTacToe
                         {
                             //So I set it to true
                             barricaded = true;
-                            //Save my current streak on the left of the barricade placed my the opponent
-                            checkVertical = streak;
+                            //Save information of the longest streak before a barricade appear
+                            longestStreak = streakCounter.ToList();
+
                         }
                         //Remove streak if opponent successfully barricade my streak
                         else
-                            streak = 0;
-                    }             
+                        {
+                            streakCounter.Clear();
+                        }
+                    }
                 }
                 else
-                    count++;
+                    countStack.Push(new Move(i, col, isXTurn));
             }
 
-            streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
-            checkVertical = checkVertical >= 5 ? checkVertical : streak;
-
-            if (checkVertical >= 5)
+            //Calculate if there is a streak of 5 or a streak of >= 5
+            if (countStack.Count > streakCounter.Count)
             {
-                if (isXTurn) return X_WIN;
-                else return O_WIN;
+                streakCounter = countStack.ToList();
+            }
+            if (longestStreak.Count < 5)
+            {
+                longestStreak = streakCounter.ToList();
+            }
+
+            if (longestStreak.Count >= 5)
+            {
+                if (isXTurn) return new Tuple<int, List<Move>>(X_WIN, longestStreak);
+                else return new Tuple<int, List<Move>>(O_WIN, longestStreak);
             }
 
             //Reset vars
-            count = 0;
-            streak = 0;
+            longestStreak.Clear();
+            countStack.Clear();
+            streakCounter.Clear();
             barricaded = false;
 
             //Check main diagonal
-            int checkDiagonal = 0;
-
             int offsetBefore = 0, offsetAfter = 0;
             offsetBefore = col - row;
             offsetAfter = (numOfCols - 1 - col) - (numOfRows - 1 - row);
@@ -578,10 +607,13 @@ namespace BigTicTacToe
                 if (TTTBoard[i, j] == 0 || TTTBoard[row, col] != TTTBoard[i, j])
                 {
                     //Calculate if there is a streak of 5 or a streak of >= 5
-                    streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+                    if (countStack.Count > streakCounter.Count)
+                    {
+                        streakCounter = countStack.ToList();
+                    }
                     //Reset counter
-                    count = 0;
-                    //If it's an opponent's piece
+                    countStack.Clear();
+                    //If its an opponent's piece
                     if (TTTBoard[i, j] != 0)
                     {
                         //My pieces after that piece the opponent placed will be barricaded
@@ -589,34 +621,43 @@ namespace BigTicTacToe
                         {
                             //So I set it to true
                             barricaded = true;
-                            //Save my current streak on the left of the barricade placed my the opponent
-                            checkDiagonal = streak;
+                            //Save information of the longest streak before a barricade appear
+                            longestStreak = streakCounter.ToList();
                         }
                         //Remove streak if opponent successfully barricade my streak
                         else
-                            streak = 0;
-                    }      
+                        {
+                            streakCounter.Clear();
+                        }
+                    }
                 }
                 else
-                    count++;
+                    countStack.Push(new Move(i, j, isXTurn));
             }
 
-            streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
-            checkDiagonal = checkDiagonal >= 5 ? checkDiagonal : streak;
-            if (checkDiagonal >= 5)
+            //Calculate if there is a streak of 5 or a streak of >= 5
+            if (countStack.Count > streakCounter.Count)
             {
-                if (isXTurn) return X_WIN;
-                else return O_WIN;
+                streakCounter = countStack.ToList();
+            }
+            if (longestStreak.Count < 5)
+            {
+                longestStreak = streakCounter.ToList();
+            }
+
+            if (longestStreak.Count >= 5)
+            {
+                if (isXTurn) return new Tuple<int, List<Move>>(X_WIN, longestStreak);
+                else return new Tuple<int, List<Move>>(O_WIN, longestStreak);
             }
 
             //Reset vars
-            streak = 0;
-            count = 0;
+            longestStreak.Clear();
+            countStack.Clear();
+            streakCounter.Clear();
             barricaded = false;
 
             //Check sub diagonal
-            checkDiagonal = 0;
-
             offsetBefore = col - (numOfRows - 1 - row);
             offsetAfter = (numOfCols - 1 - col) - row;
             startCellRow = offsetBefore < 0 ? numOfRows - 1 - Math.Abs(offsetBefore) : numOfRows - 1;
@@ -628,10 +669,13 @@ namespace BigTicTacToe
                 if (TTTBoard[i, j] == 0 || TTTBoard[row, col] != TTTBoard[i, j])
                 {
                     //Calculate if there is a streak of 5 or a streak of >= 5
-                    streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
+                    if (countStack.Count > streakCounter.Count)
+                    {
+                        streakCounter = countStack.ToList();
+                    }
                     //Reset counter
-                    count = 0;
-                    //If it's an opponent's piece
+                    countStack.Clear();
+                    //If its an opponent's piece
                     if (TTTBoard[i, j] != 0)
                     {
                         //My pieces after that piece the opponent placed will be barricaded
@@ -639,31 +683,41 @@ namespace BigTicTacToe
                         {
                             //So I set it to true
                             barricaded = true;
-                            //Save my current streak on the left of the barricade placed my the opponent
-                            checkDiagonal = streak;
+                            //Save information of the longest streak before a barricade appear
+                            longestStreak = streakCounter.ToList();
+
                         }
                         //Remove streak if opponent successfully barricade my streak
                         else
-                            streak = 0;
-                    }           
+                        {
+                            streakCounter.Clear();
+                        }
+                    }
                 }
                 else
-                    count++;
+                    countStack.Push(new Move(i, j, isXTurn));
             }
 
-            streak = streak < 5 ? count > streak ? count : streak : streak == 5 ? streak : count;
-            checkDiagonal = checkDiagonal >= 5 ? checkDiagonal : streak;
-            if (checkDiagonal >= 5)
+            //Calculate if there is a streak of 5 or a streak of >= 5
+            if (countStack.Count > streakCounter.Count)
             {
-                if (isXTurn) return X_WIN;
-                else return O_WIN;
+                streakCounter = countStack.ToList();
+            }
+            if (longestStreak.Count < 5) {
+                longestStreak = streakCounter.ToList();
+            }
+
+            if (longestStreak.Count >= 5)
+            {
+                if (isXTurn) return new Tuple<int, List<Move>>(X_WIN, longestStreak);
+                else return new Tuple<int, List<Move>>(O_WIN, longestStreak);
             }
 
             if (numberOfCellsLeft == 0) {
-                return OUT_OF_CELLS;
+                return new Tuple<int, List<Move>>(OUT_OF_CELLS, null);
             }
 
-            return GAME_NOT_OVER;
+            return new Tuple<int, List<Move>>(GAME_NOT_OVER, null);
         }
     }
 }

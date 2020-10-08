@@ -81,14 +81,14 @@
         </Style>
         
     </Window.Resources>
-    <Grid Background="#3d2a01">
+    <Grid Background="#3d2a01" MouseMove="GameBoard_MouseMove">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="6*"/>
             <ColumnDefinition Width="4*"/>
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" BorderBrush="#faf48e" BorderThickness="0,0,1,0" >
-            <Canvas Name="GameBoard" Style="{StaticResource GameBoardStyle}" Margin="0,0,0.2,0" MouseMove="GameBoard_MouseMove"
+            <Canvas Name="GameBoard" Style="{StaticResource GameBoardStyle}" Margin="0,0,0.2,0"
                     MouseLeftButtonDown="GameBoard_MouseLeftButtonDown">
                 
             </Canvas>
