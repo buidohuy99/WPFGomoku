@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BigTicTacToe
 {
-    internal class Move
+    public class Move
     {
         public int row { get; private set; }
         public int col{ get; private set; } 

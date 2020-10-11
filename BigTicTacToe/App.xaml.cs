@@ -13,5 +13,12 @@ namespace BigTicTacToe
     /// </summary>
     public partial class App : Application
     {
+        MainWindow mainWindow;
+
+        private void Application_Startup(object sender, StartupEventArgs e)
+        {
+            mainWindow = new MainWindow();
+            mainWindow.Show();
+        }
     }
 }
